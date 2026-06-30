@@ -74,7 +74,7 @@ CREATE TABLE public.chat_session (
 CREATE TABLE public.chat_message (
      id SERIAL PRIMARY KEY,
      session_id INTEGER NOT NULL,
-     content VARCHAR(255),
+     content VARCHAR,
      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
      role VARCHAR(10),
      CONSTRAINT fk_chat_message_enterprise FOREIGN KEY (session_id) REFERENCES public.chat_session (id)

@@ -2,16 +2,23 @@ package br.com.attendant.service.impl;
 
 import br.com.attendant.config.BusinessException;
 import br.com.attendant.config.ExceptionEnum;
+import br.com.attendant.entity.Enterprise;
 import br.com.attendant.entity.ServiceEnterprise;
 import br.com.attendant.repository.ServiceEnterpriseRepository;
 import br.com.attendant.service.ServiceEnterpriseService;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 class ServiceEnterpriseServiceImpl extends BaseServiceImpl<ServiceEnterprise, Long, ServiceEnterpriseRepository> implements ServiceEnterpriseService {
 
     ServiceEnterpriseServiceImpl(ServiceEnterpriseRepository serviceEnterpriseRepository) {
         super(serviceEnterpriseRepository);
+    }
+
+    public List<ServiceEnterprise> findByEnterprise(Enterprise enterprise){
+        return repository.findByEnterprise(enterprise);
     }
 
     @Override
