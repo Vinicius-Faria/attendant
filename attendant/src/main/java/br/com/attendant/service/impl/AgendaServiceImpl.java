@@ -8,7 +8,7 @@ import br.com.attendant.service.AgendaService;
 import org.springframework.stereotype.Service;
 
 @Service
-public class AgendaServiceImpl extends BaseServiceImpl<Agenda, Long, AgendaRepository> implements AgendaService {
+class AgendaServiceImpl extends BaseServiceImpl<Agenda, Long, AgendaRepository> implements AgendaService {
 
     AgendaServiceImpl(AgendaRepository agendaRepository) {
         super(agendaRepository);
