@@ -3,9 +3,16 @@ package br.com.attendant.service.impl;
 import br.com.attendant.config.BusinessException;
 import br.com.attendant.config.ExceptionEnum;
 import br.com.attendant.entity.Agenda;
+import br.com.attendant.entity.Enterprise;
 import br.com.attendant.repository.AgendaRepository;
 import br.com.attendant.service.AgendaService;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.List;
 
 @Service
 class AgendaServiceImpl extends BaseServiceImpl<Agenda, Long, AgendaRepository> implements AgendaService {
@@ -14,10 +21,27 @@ class AgendaServiceImpl extends BaseServiceImpl<Agenda, Long, AgendaRepository> 
         super(agendaRepository);
     }
 
+//    Aqui pode haver dois lugares para salvar
+//    1. Mais simples a empresa mesmo salvar via APP
+//        1.1 Não precisa de chat já que a empresa salvou --- finalizado
+//    2. O gemini salvar onde precisamos de tudo o historico
+    @Override
+    @Transactional
+    public Agenda save(Agenda agenda){
+        validate(agenda);
+        return repository.save(agenda);
+    }
+
+    public List<Agenda> findByDateAndEnterprise(LocalDate date, Enterprise enterprise) {
+        return repository.findByAtDateHourBetweenAndEnterprise(
+                date.atStartOfDay(),
+                date.atTime(LocalTime.MAX),
+                enterprise
+        );
+    }
+
     @Override
     public void validate(Agenda entity) {
-
-
         if(entity == null){
             throw new BusinessException(ExceptionEnum.ENTITY_INCOMPLETE, "É necessário informar a entidade.");
         }
@@ -32,10 +56,6 @@ class AgendaServiceImpl extends BaseServiceImpl<Agenda, Long, AgendaRepository> 
 
         if(entity.getTimeTablesEnterprise() == null ||  entity.getTimeTablesEnterprise().getId() == null){
             throw new BusinessException(ExceptionEnum.ENTITY_INCOMPLETE, "É necessário informar a agenda da empresa.");
-        }
-
-        if(entity.getChatMessage() == null ||  entity.getChatMessage().getId() == null){
-            throw new BusinessException(ExceptionEnum.ENTITY_INCOMPLETE, "É necessário informar a conversa vinculado.");
         }
 
         if(entity.getScheduledFrom() == null ||  entity.getScheduledFrom().isEmpty()){

@@ -41,10 +41,10 @@ public class Agenda {
 
     @Column(name = "is_active")
     @Schema(description = "Status de ativação do agendamento", example = "true")
-    private Boolean isActive; // Corrigido a convenção Java (IsActive -> isActive)
+    private Boolean isActive;
 
     @Column(name = "scheduled_for")
-    @Schema(description = "Identificação de quem agendou ou origem do agendamento", example = "Usuário via WhatsApp")
+    @Schema(description = "Identificação de quem agendou ou origem do agendamento", example = "Fulano")
     private String scheduledFrom;
 
     @Column(name = "at_date_hour")
