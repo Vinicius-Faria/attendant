@@ -10,7 +10,7 @@ Para preencher este arquivo em menos de 3 segundos sem quebrar o seu fluxo de c�
 3. Defina a abreviação como `todo` e o contexto como **Markdown**.
 4. No campo **Template text**, cole exatamente o bloco abaixo:
 
-```text
+```
 - [ ] **$TIPO$: $TITULO$**
   - **O que fazer:** $DETALHES$
   - **Task Vinculada:** $TASK$
@@ -25,6 +25,12 @@ $END$
 - [ ] **Refact: Alterar validação de entidade**
   - **O que fazer:** Usar Jakarta / Hibernate Validator para fazer a validação dentro da entidade.
   - **Task Vinculada:** N/A 
+
+---
+
+- [ ] **Refact: Alterar variáveis para ingles**
+  - **O que fazer:** Alterar os nomes de algumas variaveis para ingles. Ta uma pizza meia mussarela e meia portuguesa(Luis Eduardo que falou isso kk) 
+  - **Task Vinculada:** N/A
 
 ---
 
