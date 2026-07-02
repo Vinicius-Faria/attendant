@@ -33,4 +33,10 @@ $END$
   - **Task Vinculada:** N/A
 
 ---
+- [ ] **Feat: Tratar Exception no GeminiClientImpl**
+  - **O que fazer:** No arquivo GeminiClientImpl.java dentro da função messageByWhatsApp tem um throw new na exception.
+    Porém isso retorna uma exceção para ngm além do back. Se o código chegou até ali, é pq a mensagem veio do whats, então precisa contatar a empresa que deu erro
+    ou devolver uma mensagem generica melhor.
+  - **Task Vinculada:** N/A
 
+---
