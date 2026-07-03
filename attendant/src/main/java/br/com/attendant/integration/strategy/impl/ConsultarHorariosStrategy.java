@@ -13,6 +13,7 @@ import com.google.genai.types.Tool;
 import com.google.genai.types.Type;
 import org.springframework.stereotype.Component;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -78,16 +79,25 @@ class ConsultarHorariosStrategy implements GeminiToolStrategy {
             return "{\"status\": \"ERRO\", \"motivo\": \"Formato de data invalido. Forneça AAAA-MM-DD\"}";
         }
 
-        List<TimeTablesEnterprise> agendaDoDia = timeTablesEnterpriseService.findByEnterpriseIdAndDayOfWeek(
+        // Mantido o DayOfWeek original solicitado pela assinatura do seu repository
+        DayOfWeek diaDaSemana = dataDesejada.getDayOfWeek();
+
+        TimeTablesEnterprise agendaDoDia = timeTablesEnterpriseService.findByEnterpriseIdAndDayOfWeek(
                 context.enterpriseId(),
-                dataDesejada.getDayOfWeek()
+                diaDaSemana
         );
+
+        // Proteção caso o registro não exista no banco
+        if (agendaDoDia == null) {
+            return "{\"status\": \"FECHADO\", \"data\": \"" + dataDesejada + "\", \"motivo\": \"Nenhum horario de funcionamento configurado para este dia.\"}";
+        }
 
         List<Agenda> agendaList = agendaService.findByDateAndEnterprise(dataDesejada, new Enterprise(context.enterpriseId()));
         List<String> horariosDisponiveis = montarHorariosDisponiveis(agendaDoDia, agendaList);
 
-        boolean estaFechadoNoDia = agendaDoDia.isEmpty() ||
-                agendaDoDia.stream().allMatch(agenda -> Boolean.TRUE.equals(agenda.getIsClosed()));
+        // CORREÇÃO DA LÓGICA INVERTIDA:
+        // Se getIsClosed() for VERDADEIRO (true), significa que o estabelecimento ESTÁ FECHADO.
+        boolean estaFechadoNoDia = Boolean.TRUE.equals(agendaDoDia.getIsClosed());
 
         if (estaFechadoNoDia) {
             return "{\"status\": \"FECHADO\", \"data\": \"" + dataDesejada + "\", \"motivo\": \"Estabelecimento nao abre neste dia da semana.\"}";
@@ -114,18 +124,18 @@ class ConsultarHorariosStrategy implements GeminiToolStrategy {
         }
     }
 
-    private List<String> montarHorariosDisponiveis(List<TimeTablesEnterprise> agendaDoDia, List<Agenda> agendaList) {
+    private List<String> montarHorariosDisponiveis(TimeTablesEnterprise agendaDoDia, List<Agenda> agendaList) {
         List<String> horariosDisponiveis = new ArrayList<>();
 
         List<Agenda> agendaConfirmList = agendaList.stream()
                 .filter(agenda -> Boolean.TRUE.equals(agenda.getIsActive()))
                 .toList();
 
-        agendaDoDia.stream()
-                .filter(agenda -> !Boolean.TRUE.equals(agenda.getIsClosed()))
-                .sorted(Comparator.comparing(TimeTablesEnterprise::getStartTime))
-                .forEach(agenda -> horariosDisponiveis.addAll(montarSlots(agenda.getStartTime(), agenda.getEndTime(), agendaConfirmList)));
-
+        if (!Boolean.TRUE.equals(agendaDoDia.getIsClosed())) {
+            horariosDisponiveis.addAll(
+                    montarSlots(agendaDoDia.getStartTime(), agendaDoDia.getEndTime(), agendaConfirmList)
+            );
+        }
         return horariosDisponiveis;
     }
 

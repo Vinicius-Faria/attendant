@@ -3,9 +3,12 @@ package br.com.attendant.service.impl;
 import br.com.attendant.config.BusinessException;
 import br.com.attendant.config.ExceptionEnum;
 import br.com.attendant.entity.Agenda;
+import br.com.attendant.entity.ChatSession;
 import br.com.attendant.entity.Enterprise;
+import br.com.attendant.entity.SessionStatus;
 import br.com.attendant.repository.AgendaRepository;
 import br.com.attendant.service.AgendaService;
+import br.com.attendant.service.ChatSessionService;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -17,18 +20,25 @@ import java.util.List;
 @Service
 class AgendaServiceImpl extends BaseServiceImpl<Agenda, Long, AgendaRepository> implements AgendaService {
 
-    AgendaServiceImpl(AgendaRepository agendaRepository) {
+    private ChatSessionService chatSessionService;
+
+    AgendaServiceImpl(AgendaRepository agendaRepository,  ChatSessionService chatSessionService) {
         super(agendaRepository);
+        this.chatSessionService = chatSessionService;
     }
 
-//    Aqui pode haver dois lugares para salvar
-//    1. Mais simples a empresa mesmo salvar via APP
-//        1.1 Não precisa de chat já que a empresa salvou --- finalizado
-//    2. O gemini salvar onde precisamos de tudo o historico
     @Override
     @Transactional
-    public Agenda save(Agenda agenda){
+    public Agenda save(Agenda agenda) {
         validate(agenda);
+
+        if (agenda.getChatSession() != null) {
+            ChatSession chatSession = agenda.getChatSession();
+            if (chatSession.getStatus() != SessionStatus.ACAO_CONCLUIDA) {
+                chatSession.setStatus(SessionStatus.ACAO_CONCLUIDA);
+            }
+        }
+
         return repository.save(agenda);
     }
 

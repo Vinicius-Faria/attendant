@@ -7,5 +7,5 @@ import java.time.DayOfWeek;
 import java.util.List;
 
 public interface TimeTablesEnterpriseRepository extends JpaRepository<TimeTablesEnterprise, Long> {
-    List<TimeTablesEnterprise> findByEnterprise_IdAndDayOfWeek(Long enterpriseId, DayOfWeek dayOfWeek);
+    TimeTablesEnterprise findByEnterprise_IdAndDayOfWeek(Long enterpriseId, DayOfWeek dayOfWeek);
 }

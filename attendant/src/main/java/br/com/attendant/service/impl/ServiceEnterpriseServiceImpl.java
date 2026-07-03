@@ -22,6 +22,11 @@ class ServiceEnterpriseServiceImpl extends BaseServiceImpl<ServiceEnterprise, Lo
     }
 
     @Override
+    public ServiceEnterprise findByIdAndEnterprise(Long id, Enterprise enterprise) {
+        return repository.findByIdAndEnterprise(id, enterprise);
+    }
+
+    @Override
     public void validate(ServiceEnterprise entity) {
         if (entity.getEnterprise() == null || entity.getEnterprise().getId() == null) {
             throw new BusinessException(ExceptionEnum.ENTITY_INCOMPLETE, "É necessário informar o campo da Empresa associada ao Serviço.");

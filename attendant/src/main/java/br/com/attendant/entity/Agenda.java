@@ -35,9 +35,9 @@ public class Agenda {
     private Enterprise enterprise;
 
     @ManyToOne
-    @JoinColumn(name = "chat_message_id")
+    @JoinColumn(name = "chat_session_id")
     @Schema(description = "Mensagem de chat que originou o agendamento")
-    private ChatMessage chatMessage;
+    private ChatSession chatSession;
 
     @Column(name = "is_active")
     @Schema(description = "Status de ativação do agendamento", example = "true")

@@ -9,5 +9,6 @@ import java.util.List;
 public interface ServiceEnterpriseRepository extends JpaRepository<ServiceEnterprise, Long> {
 
     List<ServiceEnterprise> findByEnterprise(Enterprise enterprise);
+    ServiceEnterprise findByIdAndEnterprise(Long id, Enterprise enterprise);
 
 }

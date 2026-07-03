@@ -80,6 +80,7 @@ CREATE TABLE public.chat_message (
      CONSTRAINT fk_chat_message_enterprise FOREIGN KEY (session_id) REFERENCES public.chat_session (id)
 );
 
+
 --comment: Criacao da tabela de agenda vinculado a service_enterprise_id, timeTablesEnterprise, enterprise,chat_message_id.
 --changeset viniciusfaria:6
 --preconditions onFail: MARK_RAN onError:HALT
@@ -89,16 +90,14 @@ CREATE TABLE public.agenda (
        service_enterprise_id INTEGER NOT NULL,
        time_tables_enterprise_id INTEGER NOT NULL,
        enterprise_id INTEGER NOT NULL,
-       chat_message_id INTEGER,
+       chat_session_id INTEGER,
        is_active BOOLEAN DEFAULT FALSE,
        at_date_hour TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
        scheduled_for VARCHAR(25),
        CONSTRAINT fk_service_enterprise_enterprise FOREIGN KEY (service_enterprise_id) REFERENCES public.service_enterprise (id),
        CONSTRAINT fk_time_tables_enterprise_enterprise FOREIGN KEY (time_tables_enterprise_id) REFERENCES public.time_tables_enterprise (id),
        CONSTRAINT fk_enterprise FOREIGN KEY (enterprise_id) REFERENCES public.enterprise (id),
-       CONSTRAINT fk_chat_message_enterprise FOREIGN KEY (chat_message_id) REFERENCES public.chat_message (id),
+       CONSTRAINT fk_chat_session_enterprise FOREIGN KEY (chat_session_id) REFERENCES public.chat_session (id),
        CONSTRAINT uk_agenda_enterprise_date_hour UNIQUE (enterprise_id, at_date_hour)
 );
-
-
 

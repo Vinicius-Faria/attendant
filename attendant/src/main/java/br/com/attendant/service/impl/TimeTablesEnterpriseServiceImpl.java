@@ -18,7 +18,7 @@ class TimeTablesEnterpriseServiceImpl extends BaseServiceImpl<TimeTablesEnterpri
     }
 
     @Override
-    public List<TimeTablesEnterprise> findByEnterpriseIdAndDayOfWeek(Long enterpriseId, DayOfWeek dayOfWeek) {
+    public TimeTablesEnterprise findByEnterpriseIdAndDayOfWeek(Long enterpriseId, DayOfWeek dayOfWeek) {
         return repository.findByEnterprise_IdAndDayOfWeek(enterpriseId, dayOfWeek);
     }
 

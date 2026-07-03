@@ -1,4 +1,6 @@
 package br.com.attendant.integration.context;
 
-public record GeminiToolContext(Long enterpriseId) {
+import br.com.attendant.entity.ChatSession;
+
+public record GeminiToolContext(Long enterpriseId, ChatSession chatSession) {
 }

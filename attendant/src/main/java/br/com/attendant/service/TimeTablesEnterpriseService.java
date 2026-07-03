@@ -6,5 +6,5 @@ import java.time.DayOfWeek;
 import java.util.List;
 
 public interface TimeTablesEnterpriseService extends BaseService<TimeTablesEnterprise, Long> {
-    List<TimeTablesEnterprise> findByEnterpriseIdAndDayOfWeek(Long enterpriseId, DayOfWeek dayOfWeek);
+    TimeTablesEnterprise findByEnterpriseIdAndDayOfWeek(Long enterpriseId, DayOfWeek dayOfWeek);
 }

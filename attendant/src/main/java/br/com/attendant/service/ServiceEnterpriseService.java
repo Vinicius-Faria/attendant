@@ -8,5 +8,5 @@ import java.util.List;
 public interface ServiceEnterpriseService extends BaseService<ServiceEnterprise, Long> {
 
     List<ServiceEnterprise> findByEnterprise(Enterprise enterprise);
-
+    ServiceEnterprise findByIdAndEnterprise(Long id, Enterprise enterprise);
 }
