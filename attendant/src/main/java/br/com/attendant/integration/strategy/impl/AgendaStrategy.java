@@ -13,10 +13,9 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Component
-public class AgendaStrategy implements GeminiToolStrategy {
+class AgendaStrategy implements GeminiToolStrategy {
 
     private static final String FUNCTION_NAME = "realizar_agendamento";
     private static final String ARG_NOME_CLIENTE = "nomeCliente";
