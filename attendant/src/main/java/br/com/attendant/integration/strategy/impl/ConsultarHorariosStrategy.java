@@ -1,8 +1,11 @@
 package br.com.attendant.integration.strategy.impl;
 
+import br.com.attendant.entity.Agenda;
+import br.com.attendant.entity.Enterprise;
 import br.com.attendant.entity.TimeTablesEnterprise;
 import br.com.attendant.integration.context.GeminiToolContext;
 import br.com.attendant.integration.strategy.GeminiToolStrategy;
+import br.com.attendant.service.AgendaService;
 import br.com.attendant.service.TimeTablesEnterpriseService;
 import com.google.genai.types.FunctionDeclaration;
 import com.google.genai.types.Schema;
@@ -28,9 +31,11 @@ class ConsultarHorariosStrategy implements GeminiToolStrategy {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
 
     private final TimeTablesEnterpriseService timeTablesEnterpriseService;
+    private final AgendaService agendaService;
 
-    ConsultarHorariosStrategy(TimeTablesEnterpriseService timeTablesEnterpriseService) {
+    ConsultarHorariosStrategy(TimeTablesEnterpriseService timeTablesEnterpriseService, AgendaService agendaService) {
         this.timeTablesEnterpriseService = timeTablesEnterpriseService;
+        this.agendaService = agendaService;
     }
 
     @Override
@@ -78,7 +83,8 @@ class ConsultarHorariosStrategy implements GeminiToolStrategy {
                 dataDesejada.getDayOfWeek()
         );
 
-        List<String> horariosDisponiveis = montarHorariosDisponiveis(agendaDoDia);
+        List<Agenda> agendaList = agendaService.findByDateAndEnterprise(dataDesejada, new Enterprise(context.enterpriseId()));
+        List<String> horariosDisponiveis = montarHorariosDisponiveis(agendaDoDia, agendaList);
 
         boolean estaFechadoNoDia = agendaDoDia.isEmpty() ||
                 agendaDoDia.stream().allMatch(agenda -> Boolean.TRUE.equals(agenda.getIsClosed()));
@@ -108,23 +114,45 @@ class ConsultarHorariosStrategy implements GeminiToolStrategy {
         }
     }
 
-    private List<String> montarHorariosDisponiveis(List<TimeTablesEnterprise> agendaDoDia) {
+    private List<String> montarHorariosDisponiveis(List<TimeTablesEnterprise> agendaDoDia, List<Agenda> agendaList) {
         List<String> horariosDisponiveis = new ArrayList<>();
+
+        List<Agenda> agendaConfirmList = agendaList.stream()
+                .filter(agenda -> Boolean.TRUE.equals(agenda.getIsActive()))
+                .toList();
 
         agendaDoDia.stream()
                 .filter(agenda -> !Boolean.TRUE.equals(agenda.getIsClosed()))
                 .sorted(Comparator.comparing(TimeTablesEnterprise::getStartTime))
-                .forEach(agenda -> horariosDisponiveis.addAll(montarSlots(agenda.getStartTime(), agenda.getEndTime())));
+                .forEach(agenda -> horariosDisponiveis.addAll(montarSlots(agenda.getStartTime(), agenda.getEndTime(), agendaConfirmList)));
 
         return horariosDisponiveis;
     }
 
-    private List<String> montarSlots(LocalTime startTime, LocalTime endTime) {
+    private List<String> montarSlots(LocalTime startTime, LocalTime endTime, List<Agenda> agendaConfirmList) {
         List<String> slots = new ArrayList<>();
         LocalTime currentTime = startTime;
 
         while (currentTime.isBefore(endTime)) {
-            slots.add(currentTime.format(TIME_FORMATTER));
+            LocalTime slotAtual = currentTime;
+
+            boolean conflict = agendaConfirmList.stream().anyMatch(agendamento -> {
+                LocalTime inicioAgendamento = agendamento.getAtDateHour().toLocalTime();
+                int duracaoServico = agendamento.getServiceEnterprise().getDuration();
+                int tempoEntreServicos = 0;
+
+                if (Boolean.TRUE.equals(agendamento.getServiceEnterprise().getHasTimeBetweenOneServiceAndAnother())
+                        && agendamento.getServiceEnterprise().getTimeBetweenOneServiceAndAnother() != null) {
+                    tempoEntreServicos = agendamento.getServiceEnterprise().getTimeBetweenOneServiceAndAnother();
+                }
+
+                int tempoTotalOcupado = duracaoServico + tempoEntreServicos;
+                LocalTime fimAgendamento = inicioAgendamento.plusMinutes(tempoTotalOcupado);
+
+                return !slotAtual.isBefore(inicioAgendamento) && slotAtual.isBefore(fimAgendamento);
+            });
+
+            if (!conflict) slots.add(currentTime.format(TIME_FORMATTER));
             currentTime = currentTime.plusMinutes(DEFAULT_SLOT_INTERVAL_MINUTES);
         }
 
