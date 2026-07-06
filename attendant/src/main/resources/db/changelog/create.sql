@@ -8,7 +8,11 @@ CREATE TABLE public.enterprise (
    id SERIAL PRIMARY KEY,
    descricao VARCHAR(100),
    enterprise_type SMALLINT,
-   cnpj VARCHAR(20) UNIQUE NOT NULL
+   cnpj VARCHAR(20) UNIQUE NOT NULL,
+   email VARCHAR(50) UNIQUE NOT NULL,
+   senha VARCHAR(255) NOT NULL,
+   email_valido BOOLEAN DEFAULT FALSE,
+   uuid UUID UNIQUE
 );
 
 --comment: Criacao da tabela de WhastApp vinculando a uma empresa
