@@ -40,3 +40,9 @@ $END$
   - **Task Vinculada:** N/A
 
 ---
+- [ ] **Refact: Atualizar Diretrizes para pegar o nome do serviço de um ENUM**
+  - **O que fazer:** Dentro da classe GeminiClientImpl.java tem um função buildSystemInstruction(). Existem textos para pegar algum serviço direto na escrita(realizar_agendamento), 
+  troque esses serviços para um ENUM para padronizar e nao ter perda do texto caso o serviço mude de nome.
+  - **Task Vinculada:** N/A
+
+---
