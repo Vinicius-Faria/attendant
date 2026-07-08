@@ -105,3 +105,16 @@ CREATE TABLE public.agenda (
        CONSTRAINT uk_agenda_enterprise_date_hour UNIQUE (enterprise_id, at_date_hour)
 );
 
+--comment: Criacao da tabela de codigo de verificacao associado a enterprise.
+--changeset viniciusfaria:7
+--preconditions onFail: MARK_RAN onError:HALT
+--precondition-sql-check expectedResult:0 select count(*) from information_schema.tables where table_schema = 'public' and table_name = 'codigo_verificacao'
+CREATE TABLE public.codigo_verificacao (
+       id SERIAL PRIMARY KEY,
+       email VARCHAR(255) UNIQUE NOT NULL,
+       codigo VARCHAR(6) NOT NULL,
+       criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       atualizado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_codigo_verificacao_email ON public.codigo_verificacao(email);
+
