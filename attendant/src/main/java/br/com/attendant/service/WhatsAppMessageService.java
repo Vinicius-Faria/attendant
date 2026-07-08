@@ -6,6 +6,5 @@ import java.util.List;
 
 public interface WhatsAppMessageService {
     String receiveMessage(String message, String numberReceived, String numberSent);
-
     List<ChatMessage> findHistoric(String numberSent);
 }

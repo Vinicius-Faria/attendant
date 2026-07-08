@@ -8,23 +8,18 @@ import br.com.attendant.entity.Enterprise;
 import br.com.attendant.entity.SessionStatus;
 import br.com.attendant.repository.AgendaRepository;
 import br.com.attendant.service.AgendaService;
-import br.com.attendant.service.ChatSessionService;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
 @Service
 class AgendaServiceImpl extends BaseServiceImpl<Agenda, Long, AgendaRepository> implements AgendaService {
 
-    private ChatSessionService chatSessionService;
-
-    AgendaServiceImpl(AgendaRepository agendaRepository,  ChatSessionService chatSessionService) {
+    AgendaServiceImpl(AgendaRepository agendaRepository) {
         super(agendaRepository);
-        this.chatSessionService = chatSessionService;
     }
 
     @Override
@@ -40,6 +35,11 @@ class AgendaServiceImpl extends BaseServiceImpl<Agenda, Long, AgendaRepository> 
         }
 
         return repository.save(agenda);
+    }
+
+    @Override
+    public Agenda findByChatSession(ChatSession chatSession) {
+        return repository.findByChatSession(chatSession);
     }
 
     public List<Agenda> findByDateAndEnterprise(LocalDate date, Enterprise enterprise) {
