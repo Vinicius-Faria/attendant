@@ -4,6 +4,7 @@ import br.com.attendant.config.BusinessException;
 import br.com.attendant.config.ExceptionEnum;
 import br.com.attendant.entity.Enterprise;
 import br.com.attendant.repository.EnterpriseRepository;
+import br.com.attendant.service.CodigoVerificacaoService;
 import br.com.attendant.service.EnterpriseService;
 import jakarta.transaction.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -12,11 +13,13 @@ import org.springframework.stereotype.Service;
 @Service
 class EnterpriseServiceImpl extends BaseServiceImpl<Enterprise, Long, EnterpriseRepository> implements EnterpriseService {
 
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
+    private final CodigoVerificacaoService codigoVerificacaoService;
 
-    EnterpriseServiceImpl(EnterpriseRepository enterpriseRepository,  PasswordEncoder passwordEncoder) {
+    EnterpriseServiceImpl(EnterpriseRepository enterpriseRepository,  PasswordEncoder passwordEncoder,  CodigoVerificacaoService codigoVerificacaoService) {
         super(enterpriseRepository);
         this.passwordEncoder = passwordEncoder;
+        this.codigoVerificacaoService = codigoVerificacaoService;
     }
 
     @Override
@@ -35,8 +38,7 @@ class EnterpriseServiceImpl extends BaseServiceImpl<Enterprise, Long, Enterprise
         validate(enterprise);
         enterprise.setSenha(passwordEncoder.encode(enterprise.getSenha()));
         Enterprise enterpriseNew = repository.save(enterprise);
-//        codigoVerificacaoService.enviarCodigo(usuarioNew);
-//        cadastroBaseNovoUsuario(usuarioNew);
+        codigoVerificacaoService.enviarCodigo(enterpriseNew);
         return enterpriseNew;
     }
 

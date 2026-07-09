@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping(value = "/codigo-verificacao", produces = MediaType.APPLICATION_JSON_VALUE, consumes = MediaType.APPLICATION_JSON_VALUE)
+@RequestMapping(value = "/codigo-verificacao", produces = MediaType.APPLICATION_JSON_VALUE)
 @CrossOrigin("*")
 @Tag(name = "CodigoVerificacao", description = "Endpoints para Código de Verificaçao")
 public class CodigoVerificacaoController {
@@ -35,7 +35,7 @@ public class CodigoVerificacaoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", "Código Enviado"));
     }
 
-    @GetMapping("/verifica")
+    @GetMapping("/verifica/{email}/{codigo}")
     public ResponseEntity<?> validaCodigo(@PathVariable String email, @PathVariable String codigo) {
         Enterprise enterprise = enterpriseService.findEnterpriseByEmail(email);
         if (!codigoVerificacaoService.verificaCodigoByUser(codigo, enterprise)) {
