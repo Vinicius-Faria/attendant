@@ -18,7 +18,9 @@ import com.google.genai.types.*;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Supplier;
 
 @Service
 class GeminiClientImpl implements GeminiClient {
@@ -26,6 +28,7 @@ class GeminiClientImpl implements GeminiClient {
     private final Client client;
     private final GeminiToolRegistry toolRegistry;
     private final ChatMessageService chatMessageService;
+    private final String modelName;
 
     GeminiClientImpl(
             GeminiProperties geminiProperties,
@@ -35,6 +38,7 @@ class GeminiClientImpl implements GeminiClient {
         this.client = Client.builder().apiKey(geminiProperties.getApiKey()).build();
         this.toolRegistry = toolRegistry;
         this.chatMessageService = chatMessageService;
+        this.modelName = ModelGemini.GEMINI_2_5_FLASH.getModel();
     }
 
     @Override
@@ -49,10 +53,8 @@ class GeminiClientImpl implements GeminiClient {
                     .tools(toolRegistry.getAllTools())
                     .build();
 
-            GenerateContentResponse response = client.models.generateContent(
-                    ModelGemini.GEMINI_2_5_FLASH.getModel(),
-                    contents,
-                    config
+            GenerateContentResponse response = executeWithRetry(() ->
+                    client.models.generateContent(modelName, contents, config)
             );
 
             Optional<Part> functionCallPartOpt = obterPrimeiraFunctionCall(response);
@@ -65,31 +67,29 @@ class GeminiClientImpl implements GeminiClient {
                 Map<String, Object> args = functionCall.args().orElse(Collections.emptyMap());
                 GeminiToolStrategy strategy = toolRegistry.getStrategy(functionName);
 
-                if (strategy == null) break;
+                if (strategy == null) {
+                    break;
+                }
 
                 String jsonResultadoDaTool = strategy.execute(args, buildToolContext(session));
 
-                Content chamadaDoModelo = Content.builder()
+                contents.add(Content.builder()
                         .role("model")
                         .parts(List.of(functionCallPart))
-                        .build();
-                contents.add(chamadaDoModelo);
+                        .build());
 
                 FunctionResponse functionResponse = FunctionResponse.builder()
                         .name(functionName)
                         .response(Map.of("result", jsonResultadoDaTool))
                         .build();
 
-                Content respostaDaTool = Content.builder()
+                contents.add(Content.builder()
                         .role("tool")
                         .parts(List.of(Part.builder().functionResponse(functionResponse).build()))
-                        .build();
-                contents.add(respostaDaTool);
+                        .build());
 
-                response = client.models.generateContent(
-                        ModelGemini.GEMINI_2_5_FLASH.getModel(),
-                        contents,
-                        config
+                response = executeWithRetry(() ->
+                        client.models.generateContent(modelName, contents, config)
                 );
 
                 functionCallPartOpt = obterPrimeiraFunctionCall(response);
@@ -102,56 +102,69 @@ class GeminiClientImpl implements GeminiClient {
 
             return respostaFinal;
 
+        } catch (BusinessException be) {
+            throw be;
         } catch (Exception e) {
-            throw new BusinessException(ExceptionEnum.GENERIC, ExceptionEnum.GENERIC.getDescricao());
+            System.err.println("[Gemini Integration Error]: " + e.getMessage());
+            e.printStackTrace();
+            throw new BusinessException(ExceptionEnum.GENERIC, "Falha na comunicação inteligente com o provedor.");
         }
     }
 
     @Override
     public String generateText(String prompt) {
         try {
-            GenerateContentResponse response = client.models.generateContent(
-                    ModelGemini.GEMINI_2_5_FLASH.getModel(),
-                    prompt,
-                    null
+            GenerateContentResponse response = executeWithRetry(() ->
+                    client.models.generateContent(modelName, prompt, null)
             );
             return response.text();
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println("[Gemini Simple Text Error]: " + e.getMessage());
             throw new BusinessException(ExceptionEnum.GENERIC, ExceptionEnum.GENERIC.getDescricao());
         }
     }
 
-    private Optional<Part> obterPrimeiraFunctionCall(GenerateContentResponse response) {
-        Optional<List<Candidate>> candidates = response.candidates();
-        if (candidates.isEmpty() || candidates.get().isEmpty()) {
-            return Optional.empty();
-        }
+    /**
+     * Envolve a execução contra a API em um bloco de até 3 tentativas
+     */
+    private GenerateContentResponse executeWithRetry(Supplier<GenerateContentResponse> apiCall) {
+        int maxAttempts = 3;
+        Exception lastException = null;
 
-        Optional<Content> content = candidates.get().get(0).content();
-        if (content.isEmpty()) {
-            return Optional.empty();
-        }
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                return apiCall.get();
+            } catch (Exception e) {
+                lastException = e;
+                System.out.format("[Gemini SDK Warning] Tentativa %d de %d falhou: %s\n", attempt, maxAttempts, e.getMessage());
 
-        Optional<List<Part>> parts = content.get().parts();
-        if (parts.isEmpty()) {
-            return Optional.empty();
-        }
-
-        for (Part part : parts.get()) {
-            if (part.functionCall().isPresent()) {
-                return Optional.of(part);
+                if (attempt < maxAttempts) {
+                    try {
+                        Thread.sleep(1000L * attempt);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new BusinessException(ExceptionEnum.GENERIC, "Interrupção durante reprocessamento.");
+                    }
+                }
             }
         }
+        throw new BusinessException(ExceptionEnum.GENERIC, "Serviço temporariamente indisponível. Motivo: " + lastException.getMessage());
+    }
 
-        return Optional.empty();
+    private Optional<Part> obterPrimeiraFunctionCall(GenerateContentResponse response) {
+        return response.candidates().stream()
+                .flatMap(Collection::stream)
+                .map(Candidate::content)
+                .flatMap(Optional::stream)
+                .map(Content::parts)
+                .flatMap(Optional::stream)
+                .flatMap(Collection::stream)
+                .filter(part -> part.functionCall().isPresent())
+                .findFirst();
     }
 
     private GeminiToolContext buildToolContext(ChatSession session) {
-        Long enterpriseId = null;
-        if (session.getEnterprise() != null) {
-            enterpriseId = session.getEnterprise().getId();
-        }
+        Long enterpriseId = (session.getEnterprise() != null) ? session.getEnterprise().getId() : null;
         return new GeminiToolContext(enterpriseId, session);
     }
 
@@ -164,16 +177,14 @@ class GeminiClientImpl implements GeminiClient {
             }
 
             String role = msg.getRole().name().toLowerCase();
-            if (!role.equals("user") && !role.equals("model")) {
+            if (!"user".equals(role) && !"model".equals(role)) {
                 role = "user";
             }
 
-            Content content = Content.builder()
+            geminiContents.add(Content.builder()
                     .role(role)
                     .parts(List.of(Part.builder().text(msg.getContent()).build()))
-                    .build();
-
-            geminiContents.add(content);
+                    .build());
         }
 
         return geminiContents;
@@ -186,22 +197,25 @@ class GeminiClientImpl implements GeminiClient {
     }
 
     private String buildSystemInstruction(ContextDto context) {
-        // Melhoria: Incluir o dia da semana por extenso (ex: "terça-feira") ajuda MUITO a IA a calcular "amanhã" ou "sábado"
-        String dataHoraAtual = java.time.LocalDateTime.now()
-                .format(java.time.format.DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy 'às' HH:mm", new java.util.Locale("pt", "BR")));
+        String dataHoraAtual = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy 'às' HH:mm", new Locale("pt", "BR")));
 
         StringBuilder blocoAgenda = new StringBuilder();
         if (context.getAgenda() != null) {
-            blocoAgenda.append("\nATENÇÃO CRÍTICA (AGENDAMENTO ATIVO ENCONTRADO):\n");
-            blocoAgenda.append("O cliente JÁ POSSUI uma reserva confirmada no sistema com os seguintes dados:\n");
-            blocoAgenda.append("- ").append(context.getAgenda().toString()).append("\n");
-            blocoAgenda.append("DIRETRIZES DE MODIFICAÇÃO:\n");
-            blocoAgenda.append("1. Se o cliente quiser CANCELAR, use imediatamente a ferramenta 'cancelar_servico_agendado' (ela não precisa de parâmetros).\n");
-            blocoAgenda.append("2. Se o cliente quiser REMARCAR/ALTERAR o horário ou dia, descubra o novo momento desejado e use a ferramenta 'atualizar_horario_agendado' passando o parâmetro 'novaDataHoraISO'.\n");
-            blocoAgenda.append("3. NÃO faça buscas de novos horários do zero se a intenção dele for mexer no agendamento que ele já tem.\n");
+            blocoAgenda.append("""
+                ATENÇÃO CRÍTICA (AGENDAMENTO ATIVO ENCONTRADO):
+                O cliente JÁ POSSUI uma reserva confirmada no sistema com os seguintes dados:
+                - %s
+                DIRETRIZES DE MODIFICAÇÃO:
+                1. Se o cliente quiser CANCELAR, use imediatamente a ferramenta 'cancelar_servico_agendado' (ela não precisa de parâmetros).
+                2. Se o cliente quiser REMARCAR/ALTERAR o horário ou dia, descubra o novo momento desejado e use a ferramenta 'atualizar_horario_agendado' passando o parâmetro 'novaDataHoraISO'.
+                3. NÃO faça buscas de novos horários do zero se a intenção dele for mexer no agendamento que ele já tem.
+                """.formatted(context.getAgenda().toString()));
         } else {
-            blocoAgenda.append("\nSTATUS DO CLIENTE: O cliente NÃO possui nenhum agendamento ativo no momento.\n");
-            blocoAgenda.append("Siga o fluxo padrão de identificar o serviço, oferecer horários e criar uma nova reserva.\n");
+            blocoAgenda.append("""
+                STATUS DO CLIENTE: O cliente NÃO possui nenhum agendamento ativo no momento.
+                Siga o fluxo padrão de identificar o serviço, oferecer horários e criar uma nova reserva.
+                """);
         }
 
         return """
@@ -241,9 +255,9 @@ class GeminiClientImpl implements GeminiClient {
             1. É PROIBIDO adivinhar o "serviceId". Execute a ferramenta de consulta de serviços em silêncio para descobrir o ID real.
             2. Você precisa de 3 informações antes de chamar "realizar_agendamento": ID do Serviço, Dia/Horário confirmado e Nome do cliente. Falta o nome? Peça de forma natural.
             3. Assim que coletar o nome, invoque IMEDIATAMENTE a ferramenta "realizar_agendamento".
+            4. Jamais salve um novo agendamento com o Nome: [Nome do Cliente] ou algo parecido. Se não tem todas as informações, busque as com forma natural com o cliente.
             
             %s
-            
             CONTEXTO DE TEMPO ATUAL:
             Hoje é %s. Use isso de base para calcular "amanhã", "este sábado", etc.
             """.formatted(blocoAgenda.toString(), dataHoraAtual);
