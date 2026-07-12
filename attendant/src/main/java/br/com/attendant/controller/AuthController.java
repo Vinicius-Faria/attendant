@@ -5,6 +5,7 @@ import br.com.attendant.config.ExceptionEnum;
 import br.com.attendant.config.JwtUtil;
 import br.com.attendant.dto.CredencialDto;
 import br.com.attendant.entity.EnterpriseDetails;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -44,8 +45,7 @@ public class AuthController {
 
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("message", token, "uuid", usuarioLogado.getUuid()));
         } catch (DisabledException e) {
-            throw new BusinessException(ExceptionEnum.NOT_FOUND, "Credencial Inválida");
-
+            throw new BusinessException(ExceptionEnum.NOT_FOUND, "Usuário não confirmado.");
         } catch (BadCredentialsException e) {
             throw new BusinessException(ExceptionEnum.NOT_FOUND, "Credencial Inválida");
         }

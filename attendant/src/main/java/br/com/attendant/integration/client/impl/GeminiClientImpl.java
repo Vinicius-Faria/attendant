@@ -136,7 +136,7 @@ class GeminiClientImpl implements GeminiClient {
                 return apiCall.get();
             } catch (Exception e) {
                 lastException = e;
-                System.out.format("[Gemini SDK Warning] Tentativa %d de %d falhou: %s\n", attempt, maxAttempts, e.getMessage());
+//                System.out.format("[Gemini SDK Warning] Tentativa %d de %d falhou: %s\n", attempt, maxAttempts, e.getMessage());
 
                 if (attempt < maxAttempts) {
                     try {

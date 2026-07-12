@@ -65,11 +65,11 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         } catch (BusinessException ex) {
             resolver.resolveException(request, response, null, ex);
         } catch (ExpiredJwtException ex) {
-            resolver.resolveException(request, response, null, new BusinessException(ExceptionEnum.GENERIC, ex.getMessage()));
+            resolver.resolveException(request, response, null, new BusinessException(ExceptionEnum.GENERIC, "Token Expirado"));
         } catch (JwtException | IllegalArgumentException ex) {
-            resolver.resolveException(request, response, null, new BusinessException(ExceptionEnum.GENERIC, ex.getMessage()));
+            resolver.resolveException(request, response, null, new BusinessException(ExceptionEnum.GENERIC, "Token Expirado"));
         } catch (Exception ex) {
-            resolver.resolveException(request, response, null, new BusinessException(ExceptionEnum.GENERIC));
+            resolver.resolveException(request, response, null, new BusinessException(ExceptionEnum.GENERIC,  ex.getMessage()));
         }
     }
 }
